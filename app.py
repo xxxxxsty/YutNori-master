@@ -13,7 +13,7 @@ class App:
     config = dict(
         WSIZE   = (600, 600),
         FPS     = 30,
-        TITLE   = 'Yut-Nori'
+        TITLE   = '다함께 윷윷윷'
     )
 
     def __init__(self):
@@ -29,7 +29,6 @@ class App:
 
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
         self.clock = pygame.time.Clock()
-
         pygame.display.set_caption(self.config['TITLE'])
 
     def run(self):
@@ -92,7 +91,7 @@ class GUI:
 
         # Board Graph
         x, y, w, h = self.graph_rect = Rect([W//25, W//25, W*63//100, W*63//100])
-        self.corner_node_radius = self.graph_rect.width//20
+        self.corner_node_radius = self.graph_rect.width//25
         self.normal_node_radius = self.graph_rect.width//30
         self.piece_radius = self.normal_node_radius*3//4
 
@@ -104,7 +103,7 @@ class GUI:
         # Table
         s = H - h  # space bottom
         *_, w, h = self.table_rect = Rect([x, H-s*3//4, w, s*3//4])
-        self.sset_size = w * 15//100, h * 2//3
+        self.sset_size = w * 27//100, h * 2//3
         self.stick_size = w * 6//100, h * 2//3
 
         # Nodes in (= Pieces in = centers rel to graph)
@@ -129,7 +128,7 @@ class GUI:
         self.FONT.set_bold(True)
 
         # Nodes
-        self.corner_style = (Color('orange'), Color('black'), 1)
+        self.corner_style = (Color('skyblue'), Color('black'), 1)
         self.normal_style = (Color('white'), Color('black'), 1)
         self.hlight_style = (Color('lightblue'), 3)
 
@@ -182,7 +181,7 @@ class GUI:
                     self.game.toss(sel)
                     self.timer.start('delay')
 
-             elif self.timer.elapsed('delay') > 0.5:
+            elif self.timer.elapsed('delay') > 0.5:
                 
                 if not self.game.orig_node_been_selected():
                         self.highlight_nodes(self.game.valid_orig_nodes_for_selection())
@@ -515,10 +514,15 @@ class GUI:
         nodes[BoardNode.CORNERS.NE] = ne = (S-1-R, R)
         nodes[BoardNode.CORNERS.SE] = se = (S-1-R, S-1-R)
 
+        nodes[BoardNode.CrossA.G1] = g1 = (S//2, R)
+        nodes[BoardNode.CrossA.G4] = g4 = (S//2, S-1-R)
+        nodes[BoardNode.CrossB.R1] = r1 = (R, S//2)
+        nodes[BoardNode.CrossB.R4] = r4 = (S-1-R, S//2)
+
         nodes[BoardNode.SPECIAL.WON] = (S+R+R, S-1-R)
 
         # circuit nodes (clockwise) for vertical and horizontal paths
-        n_nodes = 4
+        n_nodes = 5
         # se -> ne (vertical)
         for nodekey, xy in zip(BoardNode.EAST, self.vert(se, ne, n_nodes)):
             nodes[nodekey] = xy
@@ -532,24 +536,16 @@ class GUI:
         for nodekey, xy in zip(BoardNode.SOUTH, self.horz(sw, se, n_nodes)):
             nodes[nodekey] = xy
 
-        # circuit nodes for diagonal paths
-        n_nodes = 2
-        NORTH_EAST_UPPER = islice(BoardNode.NORTH_EAST, 0, 2)
-        NORTH_EAST_LOWER = islice(BoardNode.NORTH_EAST, 2, 4)
-        NORTH_WEST_UPPER = islice(BoardNode.NORTH_WEST, 0, 2)
-        NORTH_WEST_LOWER = islice(BoardNode.NORTH_WEST, 2, 4)
-        # ne -> cc
-        for nodekey, xy in zip(NORTH_EAST_UPPER, self.diag(ne, cc, n_nodes)):
+        # cross nodes
+        n_nodes = 4
+
+        # g1 -> g4
+        for nodekey, xy in zip(BoardNode.CrossA, self.vert(g1, g4, n_nodes)):
             nodes[nodekey] = xy
-        # cc -> sw
-        for nodekey, xy in zip(NORTH_EAST_LOWER, self.diag(cc, sw, n_nodes)):
+        # r1 -> r4
+        for nodekey, xy in zip(BoardNode.CrossB, self.horz(r1, r4, n_nodes)):
             nodes[nodekey] = xy
-        # nw -> cc
-        for nodekey, xy in zip(NORTH_WEST_UPPER, self.diag(nw, cc, n_nodes)):
-            nodes[nodekey] = xy
-        # cc -> se
-        for nodekey, xy in zip(NORTH_WEST_LOWER, self.diag(cc, se, n_nodes)):
-            nodes[nodekey] = xy
+
 
         return nodes
 
@@ -582,7 +578,7 @@ class GUI:
     def _arrange_sticksets(self):
         table_w, table_h = self.table_rect.size
         w, h = self.sset_size
-        n = 3  # num sticksets (marked (mm), mismatch (mu), unmarked (uu))
+        n = 2  # num sticksets (marked (mm), mismatch (mu), unmarked (uu))
 
         # spacing
         sx = (table_w - w * n) // (n + 1)
