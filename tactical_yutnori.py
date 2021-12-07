@@ -28,13 +28,13 @@ class _StickComb(type):
         cls.MARKED_UNMARKED = cls.UNMARKED_MARKED = cls.UM = cls.MU
 
         # quads
-        cls.BACK_DO = cls([U, M, M, M])
+        cls.DO = cls([U, M, M, M])
         cls.GAE = cls([U, U, M, M])
         cls.GEOL = cls([U, U, U, M])
         cls.YUT = cls([U, U, U, U])
         cls.MO = cls([M, M, M, M])
 
-        cls.OUTCOMES = (cls.BACK_DO, cls.GAE, cls.GEOL, cls.YUT, cls.MO)
+        cls.OUTCOMES = (cls.DO, cls.GAE, cls.GEOL, cls.YUT, cls.MO)
 
 
 class StickComb(metaclass=_StickComb):
@@ -79,8 +79,8 @@ class StickComb(metaclass=_StickComb):
     @property
     def name(self):
         if (self.n_U + self.n_M) == 4:
-            if self == self.BACK_DO:
-                return 'BACK-DO'
+            if self == self.DO:
+                return 'DO'
             elif self == self.GAE:
                 return 'GAE'
             elif self == self.GEOL:
@@ -113,13 +113,14 @@ class BoardNode(object):
     SPECIAL = Enum('SPECIAL', dict(OUT='OUT', WON='WON'))
     CORNERS = Enum('CORNERS', dict(SE='SE', NE='NE', CC='CC', NW='NW', SW='SW'))
 
-    EAST = Enum('EAST', dict(E1='E1', E2='E2', E3='E3', E4='E4'))
-    NORTH = Enum('NORTH', dict(N1='N1', N2='N2', N3='N3', N4='N4'))
-    WEST = Enum('WEST', dict(W1='W1', W2='W2', W3='W3', W4='W4'))
-    SOUTH = Enum('SOUTH', dict(S1='S1', S2='S2', S3='S3', S4='S4'))
+    EAST = Enum('EAST', dict(E1='E1', E2='E2', E3='E3', E4='E4', E5='E5'))
+    NORTH = Enum('NORTH', dict(N1='N1', N2='N2', N3='N3', N4='N4', N5='N5'))
+    WEST = Enum('WEST', dict(W1='W1', W2='W2', W3='W3', W4='W4', W5='W5'))
+    SOUTH = Enum('SOUTH', dict(S1='S1', S2='S2', S3='S3', S4='S4', S5='S5'))
 
-    NORTH_EAST = Enum('NORTH_EAST', dict(NE1='NE1', NE2='NE2', NE4='NE4', NE5='NE5'))
-    NORTH_WEST = Enum('NORTH_WEST', dict(NW1='NW1', NW2='NW2', NW4='NW4', NW5='NW5'))
+    CrossA = Enum('CrossA', dict(G1='G1', G2='G2', G3='G3', G4='G4'))
+    CrossB = Enum('CrossB', dict(R1='R1', R2='R2', R3='R3', R4='R4'))
+
 
 
 class BoardGraph(object):
@@ -127,26 +128,28 @@ class BoardGraph(object):
     OUT, WON = BoardNode.SPECIAL
     SE, NE, CC, NW, SW = BoardNode.CORNERS
 
-    E1, E2, E3, E4 = BoardNode.EAST
-    N1, N2, N3, N4 = BoardNode.NORTH
-    W1, W2, W3, W4 = BoardNode.WEST
-    S1, S2, S3, S4 = BoardNode.SOUTH
+    E1, E2, E3, E4, E5 = BoardNode.EAST
+    N1, N2, N3, N4, N5 = BoardNode.NORTH
+    W1, W2, W3, W4, W5 = BoardNode.WEST
+    S1, S2, S3, S4, S5 = BoardNode.SOUTH
 
-    NE1, NE2, NE4, NE5 = BoardNode.NORTH_EAST
-    NW1, NW2, NW4, NW5 = BoardNode.NORTH_WEST
+    G1, G2, G3, G4 = BoardNode.CrossA
+    R1, R2, R3, R4 = BoardNode.CrossB
+
+
 
     LAYOUT = (
-        (NW, N4, N3,  N2, N1, NE),
-        (W1, NW1,        NE1, E4),
-        (W2, NW2,        NE2, E3),
-        (           CC,         ),
-        (W3, NE4,        NW4, E2),
-        (W4, NE5,        NW5, E1),
-        (SW, S1, S2,  S3, S4, SE),
+        (NW, N5, N4, N3, N2, N1, NE),
+        (W1,         G1,         E5),
+        (W2,         G2,         E4),
+        (W3, R1, R2, CC, R3, R4, E3),
+        (W4,         G3,         E2),
+        (W5,         G4,         E1),
+        (SW, S1, S2, S3, S4, S5, SE),
     )
 
     _OUTCOMES = (
-        StickComb.BACK_DO,
+        StickComb.DO,
         StickComb.GAE,
         StickComb.GEOL,
         StickComb.YUT,
@@ -158,50 +161,54 @@ class BoardGraph(object):
         # _OUTCOMES order is assumed and respected for all _TRANSITIONS!
 
         # No piece on board
-        OUT: (OUT, E2, E3, E4, NE),
+        OUT: (E1, E2, E3, E4, E5),
 
         # center and corners
-        NE: (E4, (N2, NE2), (N3, CC), (N4, NE4), (NW, NE5)),
-        NW: (N4, (W2, NW2), (W3, CC), (W4, NW4), (SW, NW5)),
-        SW: (W4, S2, S3, S4, SE),
-        SE: ((S4, NW5), WON, WON, WON, WON),
-        CC: ((NW2, NE2), (NW5, NE5), (SW, SE), (S1, WON), (S2, WON)),
-
-        # north-east diagonal
-        NE1: (NE, CC, NE4, NE5, SW),
-        NE2: (NE1, NE4, NE5, SW, S1),
-        NE4: (CC, NE5, SW, S1, S2),
-        NE5: (NE4, S1, S2, S3, S4),
-
-        # north-west diagonal
-        NW1: (NW, CC, NW4, NW5, SE),
-        NW2: (NW1, NW4, NW5, SE, WON),
-        NW4: (CC, NW5, WON, WON, WON),
-        NW5: (NW4, WON, WON, WON, WON),
+        NE: (N1, N2, N3, N4, N5),
+        NW: (W1, W2, W3, W4, W5),
+        SW: (S1, S2, S3, S4, S5),
+        SE: (WON, WON, WON, WON, WON),
+        CC: ((G3, R2), (G4, R1), (S3, W3), (S4, W4), (S5, W5)),
 
         # straight-line clockwise 1s
-        E1: (WON, E3, E4, NE, N1),
-        N1: (NE, N3, N4, NW, W1),
-        W1: (NW, W3, W4, SW, S1),
-        S1: (SW, S3, S4, SE, WON),
+        E1: (E2, E3, E4, E5, NE),
+        N1: (N2, N3, N4, N5, NW),
+        W1: (W2, W3, W4, W5, SW),
+        S1: (S2, S3, S4, S5, SE),
 
         # straight-line clockwise 2s
-        E2: (E1, E4, NE, N1, N2),
-        N2: (N1, N4, NW, W1, W2),
-        W2: (W1, W4, SW, S1, S2),
-        S2: (S1, S4, SE, WON, WON),
+        E2: (E3, E4, E5, NE, N1),
+        N2: (N3, N4, N5, NW, W1),
+        W2: (W3, W4, W5, SW, S1),
+        S2: (S3, S4, S5, SE, WON),
 
         # straight-line clockwise 3s
-        E3: (E2, NE, N1, N2, N3),
-        N3: (N2, NW, W1, W2, W3),
-        W3: (W2, SW, S1, S2, S3),
-        S3: (S2, SE, WON, WON, WON),
+        E3: ((R4, E4), (R3, E5), (CC, NE), (R2, N1), (R1, N2)),
+        N3: ((G1, N4), (G2, N5), (CC, NW), (G3, W1), (G4, W2)),
+        W3: (W4, W5, SW, S1, S2),
+        S3: (S4, S5, SE, WON, WON),
 
         # straight-line clockwise 4s
-        E4: (E3, N1, N2, N3, N4),
-        N4: (N3, W1, W2, W3, W4),
-        W4: (W3, S1, S2, S3, S4),
-        S4: (S3, WON, WON, WON, WON),
+        E4: (E5, NE, N1, N2, N3),
+        N4: (N5, NW, W1, W2, W3),
+        W4: (W5, SW, S1, S2, S3),
+        S4: (S5, SE, WON, WON, WON),
+
+        # straight-line clockwise 5s
+        E5: (NE, N1, N2, N3, N4),
+        N5: (NW, W1, W2, W3, W4),
+        W5: (SW, S1, S2, S3, S4),
+        S5: (SE, WON, WON, WON, WON),
+        # CrossA-line
+        G1: (G2, CC, G3, G4, S3),
+        G2: (CC, G3, G4, S3, S4),
+        G3: (G4, S3, S4, S5, SE),
+        G4: (S3, S4, S5, SE, WON),
+        # CrossB-line
+        R1: (W3, W4, W5, SW, S1),
+        R2: (R1, W3, W4, W5, SW),
+        R3: (CC, R2, R1, W3, W4),
+        R4: (R3, CC, W3, W4, W5),
     }
 
     @classmethod
@@ -227,8 +234,8 @@ class TacticalYutNori:
     NODE_OUT = BoardNode.SPECIAL.OUT
     NODE_WON = BoardNode.SPECIAL.WON
 
-    OUTCOMES = (BACK_DO, GAE, GEOL, YUT, MO) = (
-        StickComb.BACK_DO,
+    OUTCOMES = (DO, GAE, GEOL, YUT, MO) = (
+        StickComb.DO,
         StickComb.GAE,
         StickComb.GEOL,
         StickComb.YUT,
@@ -320,7 +327,7 @@ class TacticalYutNori:
             self.history[self.turn]['orig_node'] = node
             return True
 
-        elif len(orig_nodes) == 0:  # back-do without pieces in board
+        elif len(orig_nodes) == 0:  # do without pieces in board
             self.history[self.turn]['orig_node'] = self.NODE_OUT
             return True
 
@@ -375,7 +382,7 @@ class TacticalYutNori:
             orig_nodes = {node for piece, node in self.where.items()
                            if (self.owner(piece) == self.cur_player
                            and node != self.NODE_WON)}
-            if self.get_toss_outcome() == self.BACK_DO:
+            if self.get_toss_outcome() == self.MO:
                 orig_nodes.discard(self.NODE_OUT)
             self.history[self.turn][key] = frozenset(orig_nodes)
 
@@ -435,7 +442,7 @@ class TacticalYutNori:
         elif dest != self.NODE_OUT:
             capture = self._place(dest)
         # else:
-        # back-do does not allow piece placement and, on an empty board,
+        # do does not allow piece placement and, on an empty board,
         # since there are no pieces to move, it results in a 'skip turn'
 
         # capturing enemy pieces or tossing a YUT / MO results in a bonus turn
@@ -532,7 +539,7 @@ class TacticalYutNori:
                     return s.join(nodes)
                 elif len(nodes) == 1:  # center (1 node)
                     return 10 * s + nodes[0] + 10 * s
-                elif len(nodes) == 4:
+                elif len(nodes) == 5:
                     if row in (1, 5):
                         return nodes[0] + s + nodes[1] + 9*s + nodes[2] + s + nodes[3]
                     else:
@@ -568,7 +575,7 @@ class TacticalYutNori:
         print(Style.RESET_ALL)
 
 
-class Computer(object):
+class Player2(object):
 
     def register_toss_outcome(self, toss_outcome):
         self.toss_outcome = toss_outcome
@@ -593,65 +600,55 @@ class YutNoriHumVsCom(TacticalYutNori):
     valid_stick_pairs = (StickComb.MM, StickComb.MU, StickComb.UU)
 
     def reset(self, *args, **kwargs):
-        com = kwargs.pop('computer', Computer())
-        com_goes_first = kwargs.pop('computer_goes_first', False)
+        ply2 = kwargs.pop('player2', Player2())
+        ply2_goes_first = kwargs.pop('player2_goes_first', False)
         obs = super().reset(*args, **kwargs)
-        self.config(com, com_goes_first)
+        self.config(ply2, ply2_goes_first)
         return obs
 
-    def config(self, computer, com_goes_first=False):
-        self.computer = computer
-        self.computer.player = self.players[0] if com_goes_first else self.players[1]
+    def config(self, player2, ply2_goes_first=False):
+        self.player2 = player2
+        self.player2.player = self.players[0] if ply2_goes_first else self.players[1]
 
     def toss(self, hum_sticks):
         if hum_sticks not in self.valid_stick_pairs:
             raise ValueError(f'Invalid sticks {hum_sticks} selected!\n'
                              f'Valid stick pairs = {self.valid_stick_pairs}')
-        is_com_turn = (self.cur_player == self.computer.player)
-        com_sticks = self.computer.select_sticks(self.obs, is_com_turn)
-        outcome = hum_sticks + com_sticks
+        is_ply2_turn = (self.cur_player == self.player2.player)
+        ply2_sticks = self.player2.select_sticks(self.obs, is_ply2_turn)
+        outcome = hum_sticks + ply2_sticks
 
         super().toss(outcome)
 
-        if is_com_turn:
-            self._computer_turn()
+        #if is_com_turn:
+            #self._computer_turn()
 
         # can player proceed and select?
         # True if is_hum_turn else False
-        return (not is_com_turn)
+        return (not is_ply2_turn)
 
-    def is_computer_turn(self):
-        return (self.cur_player == self.computer.player)
+    def is_player2_turn(self):
+        return (self.cur_player == self.player2.player)
 
-    def _computer_turn(self):
-        self._during_computer_turn = True
-        self.computer.register_toss_outcome(self.get_toss_outcome())
+    def _player2_turn(self):
+        self._during_player2_turn = True
+        self.player2.register_toss_outcome(self.get_toss_outcome())
 
         valid_orig = self.valid_orig_nodes_for_selection()
-        orig = self.computer.select_orig_node(self.obs, valid_orig)
+        orig = self.player2.select_orig_node(self.obs, valid_orig)
         
         if orig in valid_orig:
             self.select_orig_node(orig)
             
             valid_dest = self.valid_dest_nodes_for_selection()
-            dest = self.computer.select_dest_node(self.obs, valid_dest)
+            dest = self.player2.select_dest_node(self.obs, valid_dest)
             
             if dest in valid_dest:
                 self.select_dest_node(dest)
 
-        del self._during_computer_turn
+        del self._during_player2_turn
 
-    def select_orig_node(self, node):
-        if self.cur_player == self.computer.player and not hasattr(self, '_during_computer_turn'):
-            raise ValueError('Human player cannot take this action during computer turn.')
 
-        return super().select_orig_node(node)
-
-    def select_dest_node(self, node):
-        if self.cur_player == self.computer.player and not hasattr(self, '_during_computer_turn'):
-            raise ValueError('Human player cannot take this action during computer turn.')
-
-        return super().select_dest_node(node)
 
 
 
