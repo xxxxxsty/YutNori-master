@@ -1,4 +1,6 @@
-# YutNori
-Korean board game from TV Show "The Genius"
+# 다함께 윷윷윷
+오픈소스의 이해 2조 팀프로젝트 과제
+팀장: 황보석
+팀원: 전주성, 육용훈, 정우솔, 김민준
 
 <img src="screenshot.PNG" height="400">
